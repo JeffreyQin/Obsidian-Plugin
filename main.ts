@@ -16,6 +16,41 @@ export default class MyPlugin extends Plugin {
 	async onload() {
 		await this.loadSettings();
 
+		this.addCommand({
+			id: "insert-date",
+			name: "Insert Date",
+			editorCallback: (editor: Editor) => {
+				editor.replaceRange(moment().format(dateFormat), editor.getCursor());
+				editor.replaceRange(
+					moment().format("YYYY-MM-DD"),
+					{ line: lastEditDateLine, ch: lastEditDateCh },
+					{ line: lastEditDateLine, ch: lastEditDateCh + dateFormat.length });
+			}
+		});
+
+		this.registerEvent(this.app.vault.on('modify', () => {
+			new Notice("changed!!");
+		}));
+
+		this.addCommand({
+			id: "read-people",
+			name: "Read-people",
+			editorCallback: (editor: Editor) => {
+				
+				const files: TFile[] = this.app.vault.getMarkdownFiles();
+				for (let index = 0; index < files.length; index++) {
+					this.app.vault.read(files[index]).then((value) => {
+						if (value.substring(0, nameListTitle.length).localeCompare(nameListTitle) == 0) {
+							var nameList: string[] = value.split(",");
+							for (let i = 0; i < nameList.length; i++) {
+								new Notice(nameList[i]);
+							}
+						}
+					})
+				}
+			}
+		});
+
 		// This creates an icon in the left ribbon.
 		const ribbonIconEl = this.addRibbonIcon('dice', 'Sample Plugin', (evt: MouseEvent) => {
 			// Called when the user clicks the icon.
