@@ -1,6 +1,13 @@
 import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting } from 'obsidian';
 
-// Remember to rename these classes and interfaces!
+var lastEditDateLine = 8;
+var lastEditDateCh = 13;
+var lastEditDateStr = "updatedDate:"
+
+var dateFormat = "YYYY-MM-DD";
+
+var nameListTitle = "nameList";
+var nameListSplitStr = ",";
 
 interface MyPluginSettings {
 	mySetting: string;
@@ -10,6 +17,32 @@ const DEFAULT_SETTINGS: MyPluginSettings = {
 	mySetting: 'default'
 }
 
+export class NameModal extends SuggestModal<string> {
+
+	editor: Editor;
+	nameList: string[];
+
+	constructor(editor: Editor, nameList: string[]) {
+		super(app);
+		this.editor = editor;
+		this.nameList = nameList;
+	}
+
+	getSuggestions(query: string): string[] {
+		return this.nameList.filter(
+			(name) => name.toLowerCase().includes(query.toLowerCase())
+		)
+	}
+
+	renderSuggestion(name: string, el: HTMLElement) {
+		el.createEl("div", { text: name });
+	}
+
+	onChooseSuggestion(name: string, evt: MouseEvent | KeyboardEvent) {
+		this.editor.replaceRange(name, this.editor.getCursor());
+	}
+}
+	
 export default class MyPlugin extends Plugin {
 	settings: MyPluginSettings;
 
@@ -17,34 +50,50 @@ export default class MyPlugin extends Plugin {
 		await this.loadSettings();
 
 		this.addCommand({
-			id: "insert-date",
-			name: "Insert Date",
+			id: "insert-date-by-location",
+			name: "Insert Date by Location",
 			editorCallback: (editor: Editor) => {
 				editor.replaceRange(moment().format(dateFormat), editor.getCursor());
 				editor.replaceRange(
-					moment().format("YYYY-MM-DD"),
+					moment().format(dateFormat),
 					{ line: lastEditDateLine, ch: lastEditDateCh },
 					{ line: lastEditDateLine, ch: lastEditDateCh + dateFormat.length });
 			}
 		});
 
-		this.registerEvent(this.app.vault.on('modify', () => {
-			new Notice("changed!!");
-		}));
+		this.addCommand({
+			id: "insert-date-by-phrase",
+			name: "Insert Date by Phrase",
+			editorCallback: (editor: Editor) => {
+				editor.replaceRange(moment().format(dateFormat), editor.getCursor());
+
+				const currentFile = this.app.workspace.getActiveFile();
+				let index = 0;
+				while (editor.getLine(index)) {
+					let text = editor.getLine(index);
+					if (text.startsWith(lastEditDateStr)) {
+						editor.replaceRange(
+							moment().format(dateFormat),
+							{ line: index, ch: lastEditDateStr.length + 1 },
+							{ line: index, ch: lastEditDateStr.length + dateFormat.length + 1 },
+						)
+						break;
+					}
+					index++;
+				}
+			}
+		});
 
 		this.addCommand({
-			id: "read-people",
-			name: "Read-people",
+			id: "add-name",
+			name: "Add Name",
 			editorCallback: (editor: Editor) => {
-				
 				const files: TFile[] = this.app.vault.getMarkdownFiles();
 				for (let index = 0; index < files.length; index++) {
 					this.app.vault.read(files[index]).then((value) => {
-						if (value.substring(0, nameListTitle.length).localeCompare(nameListTitle) == 0) {
-							var nameList: string[] = value.split(",");
-							for (let i = 0; i < nameList.length; i++) {
-								new Notice(nameList[i]);
-							}
+						if (value.startsWith(nameListTitle)) {
+							var nameList: string[] = value.split(nameListSplitStr);
+							new NameModal(editor, nameList.slice(1, nameList.length)).open();
 						}
 					})
 				}
