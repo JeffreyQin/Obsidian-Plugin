@@ -1,4 +1,6 @@
-import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting } from 'obsidian';
+import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting, moment, SuggestModal } from 'obsidian';
+
+// Remember to rename these classes and interfaces!
 
 var lastEditDateLine = 8;
 var lastEditDateCh = 13;
@@ -17,7 +19,7 @@ const DEFAULT_SETTINGS: MyPluginSettings = {
 	mySetting: 'default'
 }
 
-export class NameModal extends SuggestModal<string> {
+export class SearchNameModal extends SuggestModal<string> {
 
 	editor: Editor;
 	nameList: string[];
@@ -42,7 +44,59 @@ export class NameModal extends SuggestModal<string> {
 		this.editor.replaceRange(name, this.editor.getCursor());
 	}
 }
-	
+
+/*
+export class AddNameModal extends Modal {
+	result: string;
+	editor: Editor;
+
+	constructor(editor: Editor) {
+		super(app);
+		this.editor = editor;
+	}
+
+	onOpen() {
+		const { contentEl } = this;
+		contentEl.createEl("h1", { text: "Add new collaborator"});
+
+		new Setting(contentEl)
+			.setName("enter name")
+			.addText((text) => {
+				text.onChange((value) => {
+					this.result = value;
+				})
+			})
+
+		new Setting(contentEl)
+			.addButton((button) => {
+				button
+					.setButtonText("Add")
+					.setCta()
+					.onClick(() => {
+						this.addName(this.result);
+					})
+			})
+					
+		}
+
+		addName: (name: string) => {
+
+		}
+
+
+		name: "Add Name",
+		editorCallback: (editor: Editor) => {
+			const files: TFile[] = this.app.vault.getMarkdownFiles();
+			for (let index = 0; index < files.length; index++) {
+				this.app.vault.read(files[index]).then((value) => {
+					if (value.startsWith(nameListTitle)) {
+						var nameList: string[] = value.split(nameListSplitStr);
+						new SearchNameModal(editor, nameList.slice(1, nameList.length)).open();
+					}
+				})
+			}
+
+}*/
 export default class MyPlugin extends Plugin {
 	settings: MyPluginSettings;
 
@@ -51,7 +105,7 @@ export default class MyPlugin extends Plugin {
 
 		this.addCommand({
 			id: "insert-date-by-location",
-			name: "Insert Date by Location",
+			name: "yes",
 			editorCallback: (editor: Editor) => {
 				editor.replaceRange(moment().format(dateFormat), editor.getCursor());
 				editor.replaceRange(
@@ -93,17 +147,47 @@ export default class MyPlugin extends Plugin {
 					this.app.vault.read(files[index]).then((value) => {
 						if (value.startsWith(nameListTitle)) {
 							var nameList: string[] = value.split(nameListSplitStr);
-							new NameModal(editor, nameList.slice(1, nameList.length)).open();
+							new SearchNameModal(editor, nameList.slice(1, nameList.length)).open();
 						}
 					})
 				}
 			}
 		});
 
+		/*
+		this.addCommand({
+			id: "add-name-to-list",
+			name: "Add Name to List",
+			editorCallback: (editor: Editor) => {
+				const files: TFile[] = this.app.vault.getMarkdownFiles();
+				for (let index = 0; index < files.length; index++) {
+					this.app.vault.read(files[index]).then((value) => {
+						if (value.startsWith(nameListTitle)) {
+							
+						}
+					})
+				}
+			}
+		})*/
+		
+		/*
+		const ribbonIconAddName = this.addRibbonIcon('leaf', 'Add Collaborator Name', (evt: MouseEvent) => {
+			const files: TFile[] = this.app.vault.getMarkdownFiles();
+				for (let index = 0; index < files.length; index++) {
+					this.app.vault.read(files[index]).then((value) => {
+						if (value.startsWith(nameListTitle)) {
+							var nameList: string[] = value.split(nameListSplitStr);
+							new SearchNameModal(this.app.editor, nameList.slice(1, nameList.length)).open();
+						}
+					})
+				}
+		})
+		*/
+
 		// This creates an icon in the left ribbon.
 		const ribbonIconEl = this.addRibbonIcon('dice', 'Sample Plugin', (evt: MouseEvent) => {
 			// Called when the user clicks the icon.
-			new Notice('This is a notice!');
+			new Notice('notice');
 		});
 		// Perform additional things with the ribbon
 		ribbonIconEl.addClass('my-plugin-ribbon-class');
@@ -154,9 +238,9 @@ export default class MyPlugin extends Plugin {
 
 		// If the plugin hooks up any global DOM events (on parts of the app that doesn't belong to this plugin)
 		// Using this function will automatically remove the event listener when this plugin is disabled.
-		this.registerDomEvent(document, 'click', (evt: MouseEvent) => {
-			console.log('click', evt);
-		});
+		/*this.registerDomEvent(document, 'click', (evt: MouseEvent) => {
+			new Notice('click');
+		});*/
 
 		// When registering intervals, this function will automatically clear the interval when the plugin is disabled.
 		this.registerInterval(window.setInterval(() => console.log('setInterval'), 5 * 60 * 1000));
