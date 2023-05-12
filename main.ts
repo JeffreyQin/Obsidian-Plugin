@@ -101,6 +101,29 @@ export default class MyPlugin extends Plugin {
 			}
 		});
 
+		// insert date at cursor place and replace latest edit date through ribbon icon
+
+		const ribbonIconInsertDate = this.addRibbonIcon('calendar', 'Insert Date', (evt: MouseEvent) => {
+			if (this.app.workspace.activeEditor == null || this.app.workspace.activeEditor?.editor == null) {
+				return;
+			}
+			let editor = this.app.workspace.activeEditor!.editor!;
+
+			editor.replaceRange(moment().format(dateFormat), editor.getCursor());
+			let lineIndex = 0;
+			while (editor.getLine(lineIndex)) {
+				if (editor.getLine(lineIndex).startsWith(lastEditDateStr)) {
+					editor.replaceRange(
+						moment().format(dateFormat),
+						{ line: lineIndex, ch: lastEditDateStr.length + 1 },
+						{ line: lineIndex, ch: lastEditDateStr.length + dateFormat.length + 1 },
+					)
+					break;
+				}
+				lineIndex++;
+			}
+		});
+	
 
 		this.addCommand({
 			id: "insert-date-by-location",
