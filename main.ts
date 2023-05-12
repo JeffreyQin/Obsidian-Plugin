@@ -82,6 +82,25 @@ export default class MyPlugin extends Plugin {
 				}
 			}
 		});
+	
+		// adding people (opening name suggestion modal) anywhere on the editor through ribbon icon
+
+		const ribbonIconAddPeople = this.addRibbonIcon('user', 'Add People', (evt: MouseEvent) => {
+			if (this.app.workspace.activeEditor == null || this.app.workspace.activeEditor.editor == null) {
+				return;
+			}
+			let editor = this.app.workspace.activeEditor!.editor!;
+			const files: TFiles[] = this.app.vault.getMarkdownFiles();
+			for (let index = 0; index < files.length; index++) {
+				if (files[index].path.localeCompare(nameListFilePath) == 0) {
+					this.app.vault.read(files[index]).then((value) => {
+						let nameList: string[] = value.split('\n');
+						new NameSuggestModal(editor, nameList).open();
+					})
+				}
+			}
+		});
+
 
 		this.addCommand({
 			id: "insert-date-by-location",
