@@ -20,32 +20,32 @@ const DEFAULT_SETTINGS: MyPluginSettings = {
 }
 
 
-// name suggest modal
+// suggestion modal
 
-export class NameSuggestModal extends SuggestModal<string> {
+export class SuggestionModal extends SuggestModal<string> {
 
 	editor: Editor;
-	nameList: string[];
+	suggestionList: string[];
 
-	constructor(editor: Editor, nameList: string[]) {
+	constructor(editor: Editor, suggestionList: string[]) {
 		super(app);
 		this.editor = editor;
-		this.nameList = nameList;
+		this.suggestionList = suggestionList;
+		
 	}
 
 	getSuggestions(query: string): string[] {
-		return this.nameList.filter(
-			(name) => name.toLowerCase().includes(query.toLowerCase())
+		return this.suggestionList.filter(
+			(item) => item.toLowerCase().includes(query.toLowerCase())
 		)
 	}
-	renderSuggestion(name: string, el: HTMLElement) {
-		el.createEl("div", { text: name });
+	renderSuggestion(item: string, el: HTMLElement) {
+		el.createEl("div", { text: item });
 	}
-	onChooseSuggestion(name: string, evt: MouseEvent | KeyboardEvent) {
-		this.editor.replaceRange(name, this.editor.getCursor());
+	onChooseSuggestion(item: string, evt: MouseEvent | KeyboardEvent) {
+		this.editor.replaceRange(item, this.editor.getCursor());
 	}
 }
-
 
 
 export default class MyPlugin extends Plugin {
@@ -53,37 +53,37 @@ export default class MyPlugin extends Plugin {
 
 	async onload() {
 		await this.loadSettings();
-	
-			
-		// adding people (opening name suggestion modal) by clicking on the same line as the people list
+		
+		// adding quick text (opening suggestion modal) but double clicking on the same line as keywords
 
 		this.registerDomEvent(document, 'dblclick', (evt: MouseEvent) => {
-			if (this.app.workspace.activeEditor == null || this.app.workspace.activeEditor!.editor == null) {
+			if (this.app.workspace.activeEditor == null || this.app.workspace.activeEditor.editor == null) {
 				return;
 			}
-			let editor = this.app.workspace.activeEditor!.editor!
-			let peoplePos = { line: 0, found: false };
-			while (editor.getLine(peoplePos.line)) {
-				if (editor.getLine(peoplePos.line).startsWith(peopleStr)) {
-					peoplePos.found = true;
-					break;
-				}
-				peoplePos.line ++;
+			let editor = this.app.workspace.activeEditor!.editor!;
+			let pathToLocate: string = "";
+			let keywordFound = false;
+			if (editor.getLine(editor.getCursor().line).startsWith(peopleStr)) {
+				pathToLocate = peopleListFilePath;
+				keywordFound = true;
+			} else if (editor.getLine(editor.getCursor().line).startsWith(typeStr)) {
+				pathToLocate = typeListFilePath;
+				keywordFound = true;
 			}
-			if (peoplePos.found && peoplePos.line == editor.getCursor().line) {
+			if (keywordFound) {
 				const files: TFile[] = this.app.vault.getMarkdownFiles();
 				for (let index = 0; index < files.length; index++) {
-					if (files[index].path.localeCompare(nameListFilePath) == 0) {
+					if (files[index].path.localeCompare(pathToLocate) == 0) {
 						this.app.vault.read(files[index]).then((value) => {
-							let nameList: string[] = value.split('\n');
-							new NameSuggestModal(editor, nameList).open();
+							let suggestionList: string[] = value.split(suggestionSplitStr);
+							new SuggestionModal(editor, suggestionList).open();
 						})
 					}
 				}
 			}
 		});
 	
-		// adding people (opening name suggestion modal) anywhere on the editor through ribbon icon
+		// adding people (opening suggestion modal) anywhere on the editor through ribbon icon
 
 		const ribbonIconAddPeople = this.addRibbonIcon('user', 'Add People', (evt: MouseEvent) => {
 			if (this.app.workspace.activeEditor == null || this.app.workspace.activeEditor.editor == null) {
@@ -92,10 +92,10 @@ export default class MyPlugin extends Plugin {
 			let editor = this.app.workspace.activeEditor!.editor!;
 			const files: TFiles[] = this.app.vault.getMarkdownFiles();
 			for (let index = 0; index < files.length; index++) {
-				if (files[index].path.localeCompare(nameListFilePath) == 0) {
+				if (files[index].path.localeCompare(peopleListFilePath) == 0) {
 					this.app.vault.read(files[index]).then((value) => {
 						let nameList: string[] = value.split('\n');
-						new NameSuggestModal(editor, nameList).open();
+						new SuggestionModal(editor, nameList).open();
 					})
 				}
 			}
