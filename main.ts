@@ -19,7 +19,10 @@ const DEFAULT_SETTINGS: MyPluginSettings = {
 	mySetting: 'default'
 }
 
-export class SearchNameModal extends SuggestModal<string> {
+
+// name suggest modal
+
+export class NameSuggestModal extends SuggestModal<string> {
 
 	editor: Editor;
 	nameList: string[];
@@ -35,73 +38,50 @@ export class SearchNameModal extends SuggestModal<string> {
 			(name) => name.toLowerCase().includes(query.toLowerCase())
 		)
 	}
-
 	renderSuggestion(name: string, el: HTMLElement) {
 		el.createEl("div", { text: name });
 	}
-
 	onChooseSuggestion(name: string, evt: MouseEvent | KeyboardEvent) {
 		this.editor.replaceRange(name, this.editor.getCursor());
 	}
 }
 
-/*
-export class AddNameModal extends Modal {
-	result: string;
-	editor: Editor;
-
-	constructor(editor: Editor) {
-		super(app);
-		this.editor = editor;
-	}
-
-	onOpen() {
-		const { contentEl } = this;
-		contentEl.createEl("h1", { text: "Add new collaborator"});
-
-		new Setting(contentEl)
-			.setName("enter name")
-			.addText((text) => {
-				text.onChange((value) => {
-					this.result = value;
-				})
-			})
-
-		new Setting(contentEl)
-			.addButton((button) => {
-				button
-					.setButtonText("Add")
-					.setCta()
-					.onClick(() => {
-						this.addName(this.result);
-					})
-			})
-					
-		}
-
-		addName: (name: string) => {
-
-		}
 
 
-		name: "Add Name",
-		editorCallback: (editor: Editor) => {
-			const files: TFile[] = this.app.vault.getMarkdownFiles();
-			for (let index = 0; index < files.length; index++) {
-				this.app.vault.read(files[index]).then((value) => {
-					if (value.startsWith(nameListTitle)) {
-						var nameList: string[] = value.split(nameListSplitStr);
-						new SearchNameModal(editor, nameList.slice(1, nameList.length)).open();
-					}
-				})
-			}
-
-}*/
 export default class MyPlugin extends Plugin {
 	settings: MyPluginSettings;
 
 	async onload() {
 		await this.loadSettings();
+	
+			
+		// adding people (opening name suggestion modal) by clicking on the same line as the people list
+
+		this.registerDomEvent(document, 'dblclick', (evt: MouseEvent) => {
+			if (this.app.workspace.activeEditor == null || this.app.workspace.activeEditor!.editor == null) {
+				return;
+			}
+			let editor = this.app.workspace.activeEditor!.editor!
+			let peoplePos = { line: 0, found: false };
+			while (editor.getLine(peoplePos.line)) {
+				if (editor.getLine(peoplePos.line).startsWith(peopleStr)) {
+					peoplePos.found = true;
+					break;
+				}
+				peoplePos.line ++;
+			}
+			if (peoplePos.found && peoplePos.line == editor.getCursor().line) {
+				const files: TFile[] = this.app.vault.getMarkdownFiles();
+				for (let index = 0; index < files.length; index++) {
+					if (files[index].path.localeCompare(nameListFilePath) == 0) {
+						this.app.vault.read(files[index]).then((value) => {
+							let nameList: string[] = value.split('\n');
+							new NameSuggestModal(editor, nameList).open();
+						})
+					}
+				}
+			}
+		});
 
 		this.addCommand({
 			id: "insert-date-by-location",
