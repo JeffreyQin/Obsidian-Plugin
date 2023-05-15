@@ -47,6 +47,7 @@ export class SuggestionModal extends SuggestModal<string> {
 	}
 	onChooseSuggestion(item: string, evt: MouseEvent | KeyboardEvent) {
 		this.editor.replaceRange(item, this.editor.getCursor());
+	    updateLastEditDate(this.editor);
 	}
 }
 	
@@ -136,103 +137,13 @@ export default class MyPlugin extends Plugin {
 				return;
 			}
 			let editor = this.app.workspace.activeEditor!.editor!;
-
 			editor.replaceRange(moment().format(dateFormat), editor.getCursor());
-			let lineIndex = 0;
-			while (editor.getLine(lineIndex)) {
-				if (editor.getLine(lineIndex).startsWith(lastEditDateStr)) {
-					editor.replaceRange(
-						moment().format(dateFormat),
-						{ line: lineIndex, ch: lastEditDateStr.length + 1 },
-						{ line: lineIndex, ch: lastEditDateStr.length + dateFormat.length + 1 },
-					)
-					break;
-				}
-				lineIndex++;
-			}
+			updateLastEditDate(editor);
 		});
 	
 
-		this.addCommand({
-			id: "insert-date-by-location",
-			name: "yes",
-			editorCallback: (editor: Editor) => {
-				editor.replaceRange(moment().format(dateFormat), editor.getCursor());
-				editor.replaceRange(
-					moment().format(dateFormat),
-					{ line: lastEditDateLine, ch: lastEditDateCh },
-					{ line: lastEditDateLine, ch: lastEditDateCh + dateFormat.length });
-			}
-		});
 
-		this.addCommand({
-			id: "insert-date-by-phrase",
-			name: "Insert Date by Phrase",
-			editorCallback: (editor: Editor) => {
-				editor.replaceRange(moment().format(dateFormat), editor.getCursor());
 
-				const currentFile = this.app.workspace.getActiveFile();
-				let index = 0;
-				while (editor.getLine(index)) {
-					let text = editor.getLine(index);
-					if (text.startsWith(lastEditDateStr)) {
-						editor.replaceRange(
-							moment().format(dateFormat),
-							{ line: index, ch: lastEditDateStr.length + 1 },
-							{ line: index, ch: lastEditDateStr.length + dateFormat.length + 1 },
-						)
-						break;
-					}
-					index++;
-				}
-			}
-		});
-
-		this.addCommand({
-			id: "add-name",
-			name: "Add Name",
-			editorCallback: (editor: Editor) => {
-				const files: TFile[] = this.app.vault.getMarkdownFiles();
-				for (let index = 0; index < files.length; index++) {
-					this.app.vault.read(files[index]).then((value) => {
-						if (value.startsWith(nameListTitle)) {
-							var nameList: string[] = value.split(nameListSplitStr);
-							new SearchNameModal(editor, nameList.slice(1, nameList.length)).open();
-						}
-					})
-				}
-			}
-		});
-
-		/*
-		this.addCommand({
-			id: "add-name-to-list",
-			name: "Add Name to List",
-			editorCallback: (editor: Editor) => {
-				const files: TFile[] = this.app.vault.getMarkdownFiles();
-				for (let index = 0; index < files.length; index++) {
-					this.app.vault.read(files[index]).then((value) => {
-						if (value.startsWith(nameListTitle)) {
-							
-						}
-					})
-				}
-			}
-		})*/
-		
-		/*
-		const ribbonIconAddName = this.addRibbonIcon('leaf', 'Add Collaborator Name', (evt: MouseEvent) => {
-			const files: TFile[] = this.app.vault.getMarkdownFiles();
-				for (let index = 0; index < files.length; index++) {
-					this.app.vault.read(files[index]).then((value) => {
-						if (value.startsWith(nameListTitle)) {
-							var nameList: string[] = value.split(nameListSplitStr);
-							new SearchNameModal(this.app.editor, nameList.slice(1, nameList.length)).open();
-						}
-					})
-				}
-		})
-		*/
 
 	
 		// Perform additional things with the ribbon
