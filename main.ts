@@ -8,8 +8,11 @@ var lastEditDateStr = "updatedDate:"
 
 var dateFormat = "YYYY-MM-DD";
 
-var nameListTitle = "nameList";
-var nameListSplitStr = ",";
+var peopleStr = "people:";
+var typeStr = "type:";
+var peopleListFilePath = "collaborator.md";
+var typeListFilePath = "category.md";
+var suggestionSplitStr = '\n';
 
 interface MyPluginSettings {
 	mySetting: string;
@@ -20,7 +23,7 @@ const DEFAULT_SETTINGS: MyPluginSettings = {
 }
 
 
-// suggestion modal
+// SUGGESTION MODAL
 
 export class SuggestionModal extends SuggestModal<string> {
 
@@ -46,14 +49,39 @@ export class SuggestionModal extends SuggestModal<string> {
 		this.editor.replaceRange(item, this.editor.getCursor());
 	}
 }
+	
+// UPDATES LATEST EDIT DATE
 
+export function updateLastEditDate(editor: Editor) {
+	let lineIndex = 0;
+	while (editor.getLine(lineIndex)) {
+		if (editor.getLine(lineIndex).startsWith(lastEditDateStr)) {
+			editor.replaceRange(
+				moment().format(dateFormat),
+				{ line: lineIndex, ch: lastEditDateStr.length + 1 },
+				{ line: lineIndex, ch: lastEditDateStr.length + dateFormat.length + 1 },
+			);
+			break;
+		}
+		lineIndex ++;	
+	}
+}
 
 export default class MyPlugin extends Plugin {
 	settings: MyPluginSettings;
 
 	async onload() {
 		await this.loadSettings();
-		
+	
+		// updates last edit date upon any keys pressed
+
+		this.registerDomEvent(document, 'keypress', (evt: KeyboardEvent) => {
+			if (this.app.workspace.activeEditor == null || this.app.workspace.activeEditor.editor == null) {
+				return;
+			}
+			updateLastEditDate(this.app.workspace.activeEditor!.editor!);
+		});
+	
 		// adding quick text (opening suggestion modal) but double clicking on the same line as keywords
 
 		this.registerDomEvent(document, 'dblclick', (evt: MouseEvent) => {
