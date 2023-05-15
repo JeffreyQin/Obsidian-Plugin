@@ -1,38 +1,37 @@
 import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting, moment, SuggestModal } from 'obsidian';
+import { TextPluginSettingTab } from './settings';
 
-// Remember to rename these classes and interfaces!
-
-
-var lastEditDateStr = "updatedDate:"
-var dateFormat = "YYYY-MM-DD";
-
-var peopleStr = "people:";
-var typeStr = "type:";
-var peopleListFilePath = "collaborator.md";
-var typeListFilePath = "category.md";
-var suggestionSplitStr = '\n';
-
-
-interface MyPluginSettings {
-	mySetting: string;
+interface TextPluginSettings {
+	username: string;
+	lastEditDateStr: string;
+	dateFormat: string;
+	peopleStr: string;
+	peopleListFileName: string;
+	suggestionSplitStr: string;
 }
 
-const DEFAULT_SETTINGS: MyPluginSettings = {
-	mySetting: 'default'
-}
+const DEFAULT_SETTINGS: Partial<TextPluginSettings> = {
+	username: "",
+	lastEditDateStr: "updatedDate:",
+	dateFormat: "YYYY-MM-DD",
+	peopleStr: "people:",
+	peopleListFileName: "Collaborator",
+	suggestionSplitStr: "\n",
+};
 
 // suggestion modal
 
 export class SuggestionModal extends SuggestModal<string> {
 
 	editor: Editor;
+	settings: TextPluginSettings;
 	suggestionList: string[];
 
-	constructor(editor: Editor, suggestionList: string[]) {
+	constructor(editor: Editor, settings: TextPluginSettings, suggestionList: string[]) {
 		super(app);
 		this.editor = editor;
+		this.settings = settings;
 		this.suggestionList = suggestionList;
-		
 	}
 
 	getSuggestions(query: string): string[] {
@@ -45,18 +44,18 @@ export class SuggestionModal extends SuggestModal<string> {
 	}
 	onChooseSuggestion(item: string, evt: MouseEvent | KeyboardEvent) {
 		this.editor.replaceRange(item, this.editor.getCursor());
-		updateLastEditDate(this.editor);
+		updateLastEditDate(this.editor, this.settings);
 	}
 }
 
-export function updateLastEditDate(editor: Editor) {
+export function updateLastEditDate(editor: Editor, settings: TextPluginSettings) {
 	let lineIndex = 0;
 	while (editor.getLine(lineIndex)) {
-		if (editor.getLine(lineIndex).startsWith(lastEditDateStr)) {
+		if (editor.getLine(lineIndex).startsWith(settings.lastEditDateStr)) {
 			editor.replaceRange(
-				moment().format(dateFormat),
-				{ line: lineIndex, ch: lastEditDateStr.length + 1 },
-				{ line: lineIndex, ch: lastEditDateStr.length + dateFormat.length + 1 },
+				moment().format(settings.dateFormat),
+				{ line: lineIndex, ch: settings.lastEditDateStr.length + 1 },
+				{ line: lineIndex, ch: settings.lastEditDateStr.length + settings.dateFormat.length + 1 },
 			);
 			break;
 		}
@@ -64,11 +63,13 @@ export function updateLastEditDate(editor: Editor) {
 	}
 }
 
-export default class MyPlugin extends Plugin {
-	settings: MyPluginSettings;
+export default class TextPlugin extends Plugin {
+	settings: TextPluginSettings;
 
 	async onload() {
 		await this.loadSettings();
+
+		this.addSettingTab(new TextPluginSettingTab(this.app, this));
 
 		// updates last edit date upon any keys pressed
 
@@ -76,32 +77,23 @@ export default class MyPlugin extends Plugin {
 			if (this.app.workspace.activeEditor == null || this.app.workspace.activeEditor.editor == null) {
 				return;
 			}
-			updateLastEditDate(this.app.workspace.activeEditor!.editor!);
+			updateLastEditDate(this.app.workspace.activeEditor!.editor!, this.settings);
 		});
 		
-		// adding quick text (opening suggestion modal) but double clicking on the same line as keywords
+		// adding name (opening suggestion modal) but double clicking on the same line as the name keyword
 
 		this.registerDomEvent(document, 'dblclick', (evt: MouseEvent) => {
 			if (this.app.workspace.activeEditor == null || this.app.workspace.activeEditor.editor == null) {
 				return;
 			}
 			let editor = this.app.workspace.activeEditor!.editor!;
-			let pathToLocate: string = "";
-			let keywordFound = false;
-			if (editor.getLine(editor.getCursor().line).startsWith(peopleStr)) {
-				pathToLocate = peopleListFilePath;
-				keywordFound = true;
-			} else if (editor.getLine(editor.getCursor().line).startsWith(typeStr)) {
-				pathToLocate = typeListFilePath;
-				keywordFound = true;
-			}
-			if (keywordFound) {
+			if (editor.getLine(editor.getCursor().line).startsWith(this.settings.peopleStr)) {
 				const files: TFile[] = this.app.vault.getMarkdownFiles();
 				for (let index = 0; index < files.length; index++) {
-					if (files[index].path.localeCompare(pathToLocate) == 0) {
+					if (files[index].path.localeCompare(this.settings.peopleListFileName + '.md') == 0) {
 						this.app.vault.read(files[index]).then((value) => {
-							let suggestionList: string[] = value.split(suggestionSplitStr);
-							new SuggestionModal(editor, suggestionList).open();
+							let suggestionList: string[] = value.split(this.settings.suggestionSplitStr);
+							new SuggestionModal(editor, this.settings, suggestionList).open();
 						}) 
 					}
 				}
@@ -117,10 +109,10 @@ export default class MyPlugin extends Plugin {
 			let editor = this.app.workspace.activeEditor!.editor!;
 			const files: TFiles[] = this.app.vault.getMarkdownFiles();
 			for (let index = 0; index < files.length; index++) {
-				if (files[index].path.localeCompare(peopleListFilePath) == 0) {
+				if (files[index].path.localeCompare(this.settings.peopleListFileName + '.md') == 0) {
 					this.app.vault.read(files[index]).then((value) => {
 						let nameList: string[] = value.split('\n');
-						new SuggestionModal(editor, nameList).open();
+						new SuggestionModal(editor, this.settings, nameList).open();
 					})
 				}
 			}
@@ -133,20 +125,9 @@ export default class MyPlugin extends Plugin {
 				return;
 			}
 			let editor = this.app.workspace.activeEditor!.editor!;
-			editor.replaceRange(moment().format(dateFormat), editor.getCursor());
-			updateLastEditDate(editor);
-		});
-
-		// Perform additional things with the ribbon
-		ribbonIconEl.addClass('my-plugin-ribbon-class');
-
-
-		// This adds a settings tab so the user can configure various aspects of the plugin
-		this.addSettingTab(new SampleSettingTab(this.app, this));
-
-		// If the plugin hooks up any global DOM events (on parts of the app that doesn't belong to this plugin)
-		// Using this function will automatically remove the event listener when this plugin is disabled.
-		
+			editor.replaceRange(moment().format(this.settings.dateFormat), editor.getCursor());
+			updateLastEditDate(editor, this.settings);
+		});	
 
 		// When registering intervals, this function will automatically clear the interval when the plugin is disabled.
 		this.registerInterval(window.setInterval(() => console.log('setInterval'), 5 * 60 * 1000));
@@ -165,47 +146,3 @@ export default class MyPlugin extends Plugin {
 	}
 }
 
-class SampleModal extends Modal {
-	constructor(app: App) {
-		super(app);
-	}
-
-	onOpen() {
-		const {contentEl} = this;
-		contentEl.setText('Woah!');
-	}
-
-	onClose() {
-		const {contentEl} = this;
-		contentEl.empty();
-	}
-}
-
-class SampleSettingTab extends PluginSettingTab {
-	plugin: MyPlugin;
-
-	constructor(app: App, plugin: MyPlugin) {
-		super(app, plugin);
-		this.plugin = plugin;
-	}
-
-	display(): void {
-		const {containerEl} = this;
-
-		containerEl.empty();
-
-		containerEl.createEl('h2', {text: 'Settings for my awesome plugin.'});
-
-		new Setting(containerEl)
-			.setName('Setting #1')
-			.setDesc('It\'s a secret')
-			.addText(text => text
-				.setPlaceholder('Enter your secret')
-				.setValue(this.plugin.settings.mySetting)
-				.onChange(async (value) => {
-					console.log('Secret: ' + value);
-					this.plugin.settings.mySetting = value;
-					await this.plugin.saveSettings();
-				}));
-	}
-}
