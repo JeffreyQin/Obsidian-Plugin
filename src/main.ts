@@ -1,35 +1,8 @@
 import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting, moment, SuggestModal } from 'obsidian';
 import { TextPluginSettingTab, TextPluginSettings, DEFAULT_SETTINGS } from './settings';
+import { SuggestionModal } from './suggestion-modal';
 
-
-// suggestion modal
-
-export class SuggestionModal extends SuggestModal<string> {
-
-	editor: Editor;
-	settings: TextPluginSettings;
-	suggestionList: string[];
-
-	constructor(editor: Editor, settings: TextPluginSettings, suggestionList: string[]) {
-		super(app);
-		this.editor = editor;
-		this.settings = settings;
-		this.suggestionList = suggestionList;
-	}
-
-	getSuggestions(query: string): string[] {
-		return this.suggestionList.filter(
-			(item) => item.toLowerCase().includes(query.toLowerCase())
-		)
-	}
-	renderSuggestion(item: string, el: HTMLElement) {
-		el.createEl("div", { text: item });
-	}
-	onChooseSuggestion(item: string, evt: MouseEvent | KeyboardEvent) {
-		this.editor.replaceRange(item, this.editor.getCursor());
-		updateLastEditDate(this.editor, this.settings);
-	}
-}
+// automaticaly updates latest edit date
 
 export function updateLastEditDate(editor: Editor, settings: TextPluginSettings) {
 	let lineIndex = 0;
@@ -50,9 +23,11 @@ export default class TextPlugin extends Plugin {
 	settings: TextPluginSettings;
 
 	async onload() {
-		await this.loadSettings();
 
+		await this.loadSettings();
 		this.addSettingTab(new TextPluginSettingTab(this.app, this));
+
+		// open reminder 
 
 		// updates last edit date upon any keys pressed
 
