@@ -1,5 +1,5 @@
 import { SuggestModal, Editor } from 'obsidian';
-import { updateLastEditDate } from './main';
+import { updateLastEditDate } from '../main';
 import { TextPluginSettings } from './settings';
 
 // suggestion modal
@@ -30,3 +30,5 @@ export class SuggestionModal extends SuggestModal<string> {
 		updateLastEditDate(this.editor, this.settings);
 	}
 }
+
+//export class REminderModal extends Modal

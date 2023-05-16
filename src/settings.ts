@@ -1,4 +1,4 @@
-import TextPlugin from "./main";
+import TextPlugin from "../main";
 import { App, PluginSettingTab, Setting } from "obsidian";
 
 // setting tab for textPlugin
