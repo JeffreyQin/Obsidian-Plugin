@@ -6,16 +6,27 @@ import { TextPluginSettings } from './settings';
 
 export class NotifyModal extends Modal {
 
-	constructor() {
+	editor: Editor;
+	settings: TextPluginSettings;
+	name: string;
+
+	constructor(name: string, settings: TextPluginSettings) {
 		super(app);
+		this.editor = this.app.workspace.activeEditor!.editor!;
+		this.settings = settings;
+		this.name = name;
 	}
 
 	onOpen() {
 		const notifyText = this.contentEl.createEl('h1', { text: 'Notify user?'});
 		const notifyButton = new ButtonComponent(this.contentEl)
-			.setButtonText('Yes?')
+			.setButtonText('Yes')
 			.onClick(() => {
-				new Notice('User will be notified!');
+				new Notice(this.name + ' will be notified');
+				this.editor.replaceRange(
+					this.settings.noticeSymb,
+					{ line: this.editor.getCursor().line, ch: this.editor.getCursor().ch - this.name.length }
+				)
 				this.close();
 			})
 		}
@@ -25,9 +36,9 @@ export class NotifyModal extends Modal {
 
 export class SuggestionModal extends SuggestModal<string> {
 
-	editor: Editor;
-	settings: TextPluginSettings;
-	suggestionList: string[];
+	private editor: Editor;
+	private settings: TextPluginSettings;
+	private suggestionList: string[];
 
 	constructor(editor: Editor, settings: TextPluginSettings, suggestionList: string[]) {
 		super(app);
@@ -50,7 +61,7 @@ export class SuggestionModal extends SuggestModal<string> {
 			{ line: this.editor.getCursor().line, ch: this.editor.getCursor().ch - 1 },
 			this.editor.getCursor()
 		)
-		new NotifyModal().open();
+		new NotifyModal(item, this.settings).open();
 		updateLastEditDate(this.editor, this.settings);
 	}
 }

@@ -7,6 +7,7 @@ import { App, PluginSettingTab, Setting } from "obsidian";
 export interface TextPluginSettings {
 	username: string;
 	tagSymb: string;
+    noticeSymb: string;
 	lastEditDateStr: string;
 	dateFormat: string;
 	peopleStr: string;
@@ -17,6 +18,7 @@ export interface TextPluginSettings {
 export const DEFAULT_SETTINGS: Partial<TextPluginSettings> = {
 	username: "user",
 	tagSymb: "@",
+    noticeSymb: "!",
 	lastEditDateStr: "updatedDate:",
 	dateFormat: "YYYY-MM-DD",
 	peopleStr: "people:",
