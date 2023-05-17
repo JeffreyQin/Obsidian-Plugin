@@ -80,7 +80,7 @@ export default class TextPlugin extends Plugin {
 			}
 		});
 
-		
+
 
 		// When registering intervals, this function will automatically clear the interval when the plugin is disabled.
 		this.registerInterval(window.setInterval(() => console.log('setInterval'), 5 * 60 * 1000));
