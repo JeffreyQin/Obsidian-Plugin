@@ -26,7 +26,11 @@ export class SuggestionModal extends SuggestModal<string> {
 		el.createEl("div", { text: item });
 	}
 	onChooseSuggestion(item: string, evt: MouseEvent | KeyboardEvent) {
-		this.editor.replaceRange(item, this.editor.getCursor());
+		this.editor.replaceRange(
+			this.settings.tagSymb + item,
+			{ line: this.editor.getCursor().line, ch: this.editor.getCursor().ch - 1 },
+			this.editor.getCursor()
+		)
 		updateLastEditDate(this.editor, this.settings);
 	}
 }

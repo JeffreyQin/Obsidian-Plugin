@@ -1,6 +1,8 @@
-import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting, moment, SuggestModal, WorkspaceLeaf } from 'obsidian';
+import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting, moment, SuggestModal, WorkspaceLeaf, TFile } from 'obsidian';
 import { TextPluginSettingTab, TextPluginSettings, DEFAULT_SETTINGS } from './src/settings';
 import { SuggestionModal, } from './src/modals';
+
+
 //import { showSuggestions } from 'src/suggestion';
 
 // automaticaly updates latest edit date
@@ -28,63 +30,15 @@ export default class TextPlugin extends Plugin {
 		await this.loadSettings();
 		this.addSettingTab(new TextPluginSettingTab(this.app, this));
 
-		this.registerEvent(this.app.workspace.on('editor-change', (editor: Editor) => {
-			const key = String(editor.getLine(editor.getCursor().line).charAt(editor.getCursor().ch - 1));
-			if (key.localeCompare(this.settings.tagSymb) == 0) {
-				this.app.vaul
-			}
-		})
-
-				const files: TFile[] = this.app.vault.getMarkdownFiles();
-				for (let index = 0; index < files.length; index++) {
-					if (files[index].path.localeCompare(this.settings.peopleListFileName + '.md') == 0) {
-						this.app.vault.read(files[index]).then((value) => {
-							let suggestionList: string[] = value.split(this.settings.suggestionSplitStr);
-							new SuggestionModal(editor, this.settings, suggestionList).open();
-						}) 
-					}
-				}
-			}
-		}));
-
-
-		// updates last edit date upon any keys pressed
+		// updates last edit date upon any changes to the editor
 
 		this.registerDomEvent(document, 'keypress', (evt: KeyboardEvent) => {
 			updateLastEditDate(this.app.workspace.activeEditor!.editor!, this.settings);
-		});
-		
-		// adding name (opening suggestion modal) but double clicking on the same line as the name keyword
+		})
 
-		this.registerDomEvent(document, 'dblclick', (evt: MouseEvent) => {
-			let editor = this.app.workspace.activeEditor!.editor!;
-			if (editor.getLine(editor.getCursor().line).startsWith(this.settings.peopleStr)) {
-				const files: TFile[] = this.app.vault.getMarkdownFiles();
-				for (let index = 0; index < files.length; index++) {
-					if (files[index].path.localeCompare(this.settings.peopleListFileName + '.md') == 0) {
-						this.app.vault.read(files[index]).then((value) => {
-							let suggestionList: string[] = value.split(this.settings.suggestionSplitStr);
-							new SuggestionModal(editor, this.settings, suggestionList).open();
-						}) 
-					}
-				}
-			}
-		});
-		
-		// adding people (opening suggestion modal) anywhere on the editor through ribbon icon
-
-		const ribbonIconAddPeople = this.addRibbonIcon('user', 'Add People', (evt: MouseEvent) => {
-			let editor = this.app.workspace.activeEditor!.editor!;
-			const files: TFiles[] = this.app.vault.getMarkdownFiles();
-			for (let index = 0; index < files.length; index++) {
-				if (files[index].path.localeCompare(this.settings.peopleListFileName + '.md') == 0) {
-					this.app.vault.read(files[index]).then((value) => {
-						let nameList: string[] = value.split('\n');
-						new SuggestionModal(editor, this.settings, nameList).open();
-					})
-				}
-			}
-		});
+		this.registerEvent(this.app.workspace.on('editor-paste', () => {
+			updateLastEditDate(this.app.workspace.activeEditor!.editor!, this.settings);
+		}));
 
 		// insert date at cursor place and replace latest edit date through ribbon icon
 
@@ -93,6 +47,40 @@ export default class TextPlugin extends Plugin {
 			editor.replaceRange(moment().format(this.settings.dateFormat), editor.getCursor());
 			updateLastEditDate(editor, this.settings);
 		});	
+
+		// adding/mentioning people anywhere on the editor through tag symbol
+
+		this.registerEvent(this.app.workspace.on('editor-change', (editor: Editor) => {
+			const key = editor.getLine(editor.getCursor().line).charAt(editor.getCursor().ch - 1);
+			if (key.localeCompare(this.settings.tagSymb) == 0) {
+				const files: TFile[] = this.app.vault.getMarkdownFiles();
+				for (let index = 0; index < files.length; index++) {
+					if (files[index].path.localeCompare(this.settings.peopleListFileName + '.md') == 0) {
+						this.app.vault.read(files[index]).then((content) => {
+							let nameSuggestionList: string[] = content.split(this.settings.suggestionSplitStr);
+							new SuggestionModal(editor, this.settings, nameSuggestionList).open();
+						})
+					}
+				}
+			}
+		}));
+
+		// adding people (opening suggestion modal) anywhere on the editor through ribbon icon
+
+		const ribbonIconAddPeople = this.addRibbonIcon('user', 'Add People', (evt: MouseEvent) => {
+			let editor = this.app.workspace.activeEditor!.editor!;
+			const files: TFile[] = this.app.vault.getMarkdownFiles();
+			for (let index = 0; index < files.length; index++) {
+				if (files[index].path.localeCompare(this.settings.peopleListFileName + '.md') == 0) {
+					this.app.vault.read(files[index]).then((content) => {
+						let nameSuggestionList: string[] = content.split(this.settings.suggestionSplitStr);
+						new SuggestionModal(editor, this.settings, nameSuggestionList).open();
+					})
+				}
+			}
+		});
+
+		
 
 		// When registering intervals, this function will automatically clear the interval when the plugin is disabled.
 		this.registerInterval(window.setInterval(() => console.log('setInterval'), 5 * 60 * 1000));

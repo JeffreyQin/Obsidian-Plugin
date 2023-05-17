@@ -2,6 +2,7 @@ import { Plugin, Editor, App } from 'obsidian';
 import TextPlugin from '../main';
 import { TextPluginSettings } from './settings';
 
+
 export function showSuggestions(app: App, settings: TextPluginSettings, suggestions: string[]) {
     this.app = app;
     this.editor = app.workspace.activeEditor!.editor!;
