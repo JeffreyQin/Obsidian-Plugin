@@ -31,6 +31,10 @@ export default class TextPlugin extends Plugin {
 		this.registerEvent(this.app.workspace.on('editor-change', (editor: Editor) => {
 			const key = String(editor.getLine(editor.getCursor().line).charAt(editor.getCursor().ch - 1));
 			if (key.localeCompare(this.settings.tagSymb) == 0) {
+				this.app.vaul
+			}
+		})
+
 				const files: TFile[] = this.app.vault.getMarkdownFiles();
 				for (let index = 0; index < files.length; index++) {
 					if (files[index].path.localeCompare(this.settings.peopleListFileName + '.md') == 0) {
