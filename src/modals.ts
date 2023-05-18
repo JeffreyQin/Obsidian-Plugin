@@ -57,7 +57,7 @@ export class SuggestionModal extends SuggestModal<string> {
 	}
 	onChooseSuggestion(item: string, evt: MouseEvent | KeyboardEvent) {
 		this.editor.replaceRange(
-			this.settings.tagSymb + item,
+			item,
 			{ line: this.editor.getCursor().line, ch: this.editor.getCursor().ch - 1 },
 			this.editor.getCursor()
 		)
