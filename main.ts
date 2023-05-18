@@ -31,13 +31,21 @@ export default class TextPlugin extends Plugin {
 		await this.loadSettings();
 		this.addSettingTab(new TextPluginSettingTab(this.app, this));
 
-		// load notifications upon start
+		// load notifications upon start or through ribbon icon
 
-		loadNotifications(this.settings);
+		this.registerDomEvent(document, 'load', (evt: Event) => {
+			loadNotifications(this.settings);
+		})
 		
 		const ribbonIconNotifications = this.addRibbonIcon('bell', 'Show Notifications', (evt: MouseEvent) => {
 			loadNotifications(this.settings);
 		})
+
+		// display notification on current file upon opening file
+
+		this.registerEvent(this.app.workspace.on('file-open', (file: TFile) => {
+			new Notice('yes');
+		}))
 
 		// updates last edit date upon any changes to the editor
 
