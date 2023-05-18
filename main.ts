@@ -1,6 +1,7 @@
 import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting, moment, SuggestModal, WorkspaceLeaf, TFile } from 'obsidian';
 import { TextPluginSettingTab, TextPluginSettings, DEFAULT_SETTINGS } from './src/settings';
-import { SuggestionModal, } from './src/modals';
+import { SuggestionModal } from './src/modals';
+import { loadNotifications } from './src/notification';
 
 
 //import { showSuggestions } from 'src/suggestion';
@@ -29,6 +30,14 @@ export default class TextPlugin extends Plugin {
 
 		await this.loadSettings();
 		this.addSettingTab(new TextPluginSettingTab(this.app, this));
+
+		// load notifications upon start
+
+		loadNotifications(this.settings);
+		
+		const ribbonIconNotifications = this.addRibbonIcon('bell', 'Show Notifications', (evt: MouseEvent) => {
+			loadNotifications(this.settings);
+		})
 
 		// updates last edit date upon any changes to the editor
 
