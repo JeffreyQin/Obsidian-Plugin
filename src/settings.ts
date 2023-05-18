@@ -7,10 +7,10 @@ import { App, PluginSettingTab, Setting } from "obsidian";
 export interface TextPluginSettings {
 	username: string;
 	tagSymb: string;
+    autoNotify: boolean;
     noticeSymb: string;
 	lastEditDateStr: string;
 	dateFormat: string;
-	peopleStr: string;
 	peopleListFileName: string;
 	suggestionSplitStr: string;
 }
@@ -18,10 +18,10 @@ export interface TextPluginSettings {
 export const DEFAULT_SETTINGS: Partial<TextPluginSettings> = {
 	username: "user",
 	tagSymb: "@",
+    autoNotify: true,
     noticeSymb: "!",
 	lastEditDateStr: "updatedDate:",
 	dateFormat: "YYYY-MM-DD",
-	peopleStr: "people:",
 	peopleListFileName: "collaborator",
 	suggestionSplitStr: "\n",
 };
@@ -38,7 +38,7 @@ export class TextPluginSettingTab extends PluginSettingTab {
         let { containerEl } = this;
         containerEl.empty();
         
-        containerEl.createEl('h1', { text: 'Tags & notices' });
+        containerEl.createEl('h1', { text: 'Tagging & Adding People' });
 
         new Setting(containerEl)
             .setName('Username')
@@ -70,51 +70,16 @@ export class TextPluginSettingTab extends PluginSettingTab {
                     await this.plugin.saveSettings();
                 })
             )
-
-        containerEl.createEl('h1', { text: 'Insert & update edit dates'});
-        
         new Setting(containerEl)
-            .setName('Keyword: latest edit date')
-            .addText(text => text
-                .setPlaceholder('default: updatedDate:')
-                .setValue(this.plugin.settings.lastEditDateStr)
-                .onChange(async (input) => {
-                    if (input.localeCompare('') == 0) {
-                        this.plugin.settings.lastEditDateStr = DEFAULT_SETTINGS.lastEditDateStr!;
+            .setName('Notify pop-up')
+            .setDesc('Automatic pop-up option to notify user upon tag')
+            .addToggle(toggle => toggle
+                .setValue(this.plugin.settings.autoNotify)
+                .onChange(async (value) => {
+                    if (this.plugin.settings.autoNotify) {
+                        this.plugin.settings.autoNotify = false;
                     } else {
-                        this.plugin.settings.lastEditDateStr = input;
-                    }
-                    await this.plugin.saveSettings();
-                })
-            )
-        new Setting(containerEl)
-            .setName('Date format')
-            .setDesc('Format used in inserting / editing dates.')
-            .addText(text => text
-                .setPlaceholder('default: YYYY-MM-DD')
-                .setValue(this.plugin.settings.dateFormat)
-                .onChange(async (input) => {
-                    if (input.localeCompare('') == 0) {
-                        this.plugin.settings.dateFormat = DEFAULT_SETTINGS.dateFormat!;
-                    } else {
-                        this.plugin.settings.dateFormat = input;
-                    }
-                    await this.plugin.saveSettings();
-                })
-            )
-        
-        containerEl.createEl('h1', { text: 'Insert names & people'})
-        
-        new Setting(containerEl)
-            .setName('Keyword: people added')
-            .addText(text => text
-                .setPlaceholder('default: people:') 
-                .setValue(this.plugin.settings.peopleStr)
-                .onChange(async (input) => {
-                    if (input.localeCompare('') == 0) {
-                        this.plugin.settings.peopleStr = DEFAULT_SETTINGS.peopleStr!;
-                    } else {
-                        this.plugin.settings.peopleStr = input;
+                        this.plugin.settings.autoNotify = true;
                     }
                     await this.plugin.saveSettings();
                 })
@@ -149,6 +114,40 @@ export class TextPluginSettingTab extends PluginSettingTab {
                     await this.plugin.saveSettings();
                 })
             )
+
+        containerEl.createEl('h1', { text: 'Inserting & Updating Edit Dates'});
+        
+        new Setting(containerEl)
+            .setName('Keyword: latest edit date')
+            .addText(text => text
+                .setPlaceholder('default: updatedDate:')
+                .setValue(this.plugin.settings.lastEditDateStr)
+                .onChange(async (input) => {
+                    if (input.localeCompare('') == 0) {
+                        this.plugin.settings.lastEditDateStr = DEFAULT_SETTINGS.lastEditDateStr!;
+                    } else {
+                        this.plugin.settings.lastEditDateStr = input;
+                    }
+                    await this.plugin.saveSettings();
+                })
+            )
+        new Setting(containerEl)
+            .setName('Date format')
+            .setDesc('Format used in inserting / editing dates.')
+            .addText(text => text
+                .setPlaceholder('default: YYYY-MM-DD')
+                .setValue(this.plugin.settings.dateFormat)
+                .onChange(async (input) => {
+                    if (input.localeCompare('') == 0) {
+                        this.plugin.settings.dateFormat = DEFAULT_SETTINGS.dateFormat!;
+                    } else {
+                        this.plugin.settings.dateFormat = input;
+                    }
+                    await this.plugin.saveSettings();
+                })
+            )
+        
+        
     }   
 }
 

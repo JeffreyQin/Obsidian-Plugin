@@ -39,12 +39,14 @@ export class SuggestionModal extends SuggestModal<string> {
 	private editor: Editor;
 	private settings: TextPluginSettings;
 	private suggestionList: string[];
+	private triggerNotify: boolean;
 
-	constructor(editor: Editor, settings: TextPluginSettings, suggestionList: string[]) {
+	constructor(editor: Editor, settings: TextPluginSettings, suggestionList: string[], triggerNotify: boolean) {
 		super(app);
 		this.editor = editor;
 		this.settings = settings;
 		this.suggestionList = suggestionList;
+		this.triggerNotify = triggerNotify;
 	}
 
 	getSuggestions(query: string): string[] {
@@ -56,12 +58,18 @@ export class SuggestionModal extends SuggestModal<string> {
 		el.createEl("div", { text: item });
 	}
 	onChooseSuggestion(item: string, evt: MouseEvent | KeyboardEvent) {
-		this.editor.replaceRange(
-			item,
-			{ line: this.editor.getCursor().line, ch: this.editor.getCursor().ch - 1 },
-			this.editor.getCursor()
-		)
-		new NotifyModal(item, this.settings).open();
+		if (this.triggerNotify) {
+			this.editor.replaceRange(
+				item,
+				{ line: this.editor.getCursor().line, ch: this.editor.getCursor().ch - 1 },
+				this.editor.getCursor()
+			)
+			if (this.settings.autoNotify) {
+				new NotifyModal(item, this.settings).open();
+			}
+		} else {
+			this.editor.replaceRange(item, this.editor.getCursor());
+		}
 		updateLastEditDate(this.editor, this.settings);
 	}
 }

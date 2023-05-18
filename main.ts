@@ -59,10 +59,11 @@ export default class TextPlugin extends Plugin {
 						this.app.vault.read(files[index]).then((content) => {
 							editor.replaceRange(
 								this.settings.tagSymb + ' ',
-								{ line: editor.getCursor().line, ch: editor.getCursor().ch - 1 }
+								{ line: editor.getCursor().line, ch: editor.getCursor().ch - 1 },
+								editor.getCursor()
 							)
 							let nameSuggestionList: string[] = content.split(this.settings.suggestionSplitStr);
-							new SuggestionModal(editor, this.settings, nameSuggestionList).open();
+							new SuggestionModal(editor, this.settings, nameSuggestionList, true).open();
 						})
 					}
 				}
@@ -78,7 +79,7 @@ export default class TextPlugin extends Plugin {
 				if (files[index].path.localeCompare(this.settings.peopleListFileName + '.md') == 0) {
 					this.app.vault.read(files[index]).then((content) => {
 						let nameSuggestionList: string[] = content.split(this.settings.suggestionSplitStr);
-						new SuggestionModal(editor, this.settings, nameSuggestionList).open();
+						new SuggestionModal(editor, this.settings, nameSuggestionList, false).open();
 					})
 				}
 			}
