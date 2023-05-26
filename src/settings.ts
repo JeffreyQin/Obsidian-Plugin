@@ -11,8 +11,11 @@ export interface TextPluginSettings {
     noticeSymb: string;
 	lastEditDateStr: string;
 	dateFormat: string;
+    peopleStr: string;
 	peopleListFileName: string;
 	suggestionSplitStr: string;
+    newNotifFileName: string;
+    separationLineStr: string;
 }
 
 export const DEFAULT_SETTINGS: Partial<TextPluginSettings> = {
@@ -22,8 +25,11 @@ export const DEFAULT_SETTINGS: Partial<TextPluginSettings> = {
     noticeSymb: "!",
 	lastEditDateStr: "updatedDate:",
 	dateFormat: "YYYY-MM-DD",
+    peopleStr: "people:",
 	peopleListFileName: "collaborator",
 	suggestionSplitStr: "\n",
+    newNotifFileName: "notifications",
+    separationLineStr: '---'
 };
 
 export class TextPluginSettingTab extends PluginSettingTab {
@@ -57,7 +63,7 @@ export class TextPluginSettingTab extends PluginSettingTab {
             )
         new Setting(containerEl)
             .setName('Tag indicator')
-            .setDesc('A character/string other users will use to tag you.')
+            .setDesc('A character/string you and other users will use to tag each other.')
             .addText(text => text
                 .setPlaceholder('default: @')
                 .setValue(this.plugin.settings.tagSymb)
@@ -70,6 +76,21 @@ export class TextPluginSettingTab extends PluginSettingTab {
                     await this.plugin.saveSettings();
                 })
             )
+        new Setting(containerEl)
+            .setName('Keyword: people list')
+            .addText(text => text
+                .setPlaceholder('default: people:')
+                .setValue(this.plugin.settings.peopleStr)
+                .onChange(async (input) => {
+                    if (input.localeCompare('') == 0) {
+                        this.plugin.settings.peopleStr = DEFAULT_SETTINGS.peopleStr!;
+                    } else {
+                        this.plugin.settings.peopleStr = input;
+                    }
+                    await this.plugin.saveSettings();
+                })
+            )
+        /************************************************************ 
         new Setting(containerEl)
             .setName('Notify pop-up')
             .setDesc('Automatic pop-up option to notify user upon tag')
@@ -84,6 +105,7 @@ export class TextPluginSettingTab extends PluginSettingTab {
                     await this.plugin.saveSettings();
                 })
             )
+        **************************************************************/
         new Setting(containerEl)
             .setName('Name list file')
             .setDesc('File that stores all candidates for names to be added')
@@ -147,6 +169,23 @@ export class TextPluginSettingTab extends PluginSettingTab {
                 })
             )
         
+        containerEl.createEl('h1', { text: 'Others'});
+
+        new Setting(containerEl)
+            .setName('New day separation line')
+            .setDesc('For auto insertion of date and username upon edit.')
+            .addText(text => text
+                .setPlaceholder('default: ---')
+                .setValue(this.plugin.settings.separationLineStr)
+                .onChange(async (input) => {
+                    if (input.localeCompare('') == 0) {
+                        this.plugin.settings.separationLineStr = DEFAULT_SETTINGS.separationLineStr!;
+                    } else {
+                        this.plugin.settings.separationLineStr = input;
+                    }
+                    await this.plugin.saveSettings();
+                })
+            )
         
     }   
 }
