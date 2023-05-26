@@ -1,52 +1,90 @@
 import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting, moment, SuggestModal, WorkspaceLeaf, TFile } from 'obsidian';
 import { TextPluginSettingTab, TextPluginSettings, DEFAULT_SETTINGS } from './src/settings';
 import { SuggestionModal } from './src/modals';
-import { loadNotifications } from './src/notification';
-
-
-//import { showSuggestions } from 'src/suggestion';
+import { monitorEventLoopDelay } from 'perf_hooks';
+//import { loadNotifications } from './src/notification';
 
 // automaticaly updates latest edit date
 
 export function updateLastEditDate(editor: Editor, settings: TextPluginSettings) {
 	let lineIndex = 0;
 	while (editor.getLine(lineIndex)) {
-		if (editor.getLine(lineIndex).startsWith(settings.lastEditDateStr)) {
-			editor.replaceRange(
-				moment().format(settings.dateFormat),
-				{ line: lineIndex, ch: settings.lastEditDateStr.length + 1 },
-				{ line: lineIndex, ch: settings.lastEditDateStr.length + settings.dateFormat.length + 1 },
-			);
-			break;
+		let line = editor.getLine(lineIndex);
+		if (line.startsWith(settings.lastEditDateStr)) {
+			if (editor.getCursor().line != lineIndex) {
+				if (line.length > settings.lastEditDateStr.length + settings.dateFormat.length) {
+					editor.replaceRange(
+						moment().format(settings.dateFormat),
+						{ line: lineIndex, ch: settings.lastEditDateStr.length + 1 },
+						{ line: lineIndex, ch: settings.lastEditDateStr.length + settings.dateFormat.length + 1 }
+					)
+				} else {
+					editor.replaceRange(
+						moment().format(settings.dateFormat),
+						{ line: lineIndex, ch: settings.lastEditDateStr.length + 1 },
+						{ line: lineIndex, ch: line.length }
+					)
+				}
+			}
+		break;
 		}
-		lineIndex ++;	
+	lineIndex ++;	
 	}
+}
+
+// generate name list and open modal
+
+export async function openSuggestionModal(app: App, settings: TextPluginSettings, caseID: number) {
+	const nameFile = app.vault.getMarkdownFiles().find((file) => file.path.localeCompare(settings.peopleListFileName + '.md') == 0);
+	const nameSuggestionList: string[] = (await app.vault.read(nameFile!)).split(settings.suggestionSplitStr);
+	new SuggestionModal(app.workspace.activeEditor!.editor!, settings, nameSuggestionList, caseID).open();
+}
+
+// show notifications and remove tag symbols from corresponding files
+
+export async function showNotifications(app: App, settings: TextPluginSettings) {
+	const files: TFile[] = this.app.vault.getMarkdownFiles();
+	for (let index = 0; index < files.length; index++) {
+		let oldContent: string= await this.app.vault.read(files[index]);
+		if (oldContent.contains(settings.tagSymb + settings.username)) {
+			new Notice('You have a new mention in ' + files[index].path);
+			let newContent: string = oldContent.replace(new RegExp(settings.tagSymb + settings.username, 'gi'), settings.username);
+			app.vault.modify(files[index], newContent);
+		}
+	}
+}
+
+//generate auto text (date + username)
+
+export function generateAutoText(app: App, editor: Editor, settings: TextPluginSettings) {
+	editor.replaceRange(
+		'\n' + settings.separationLineStr + '\n' + moment().format(settings.dateFormat) + " " + settings.username + '\n',
+		{ line: editor.getCursor().line - 1, ch: 0 }
+	)
 }
 
 export default class TextPlugin extends Plugin {
 	settings: TextPluginSettings;
 
+	
 	async onload() {
-
 		await this.loadSettings();
 		this.addSettingTab(new TextPluginSettingTab(this.app, this));
 
-		// load notifications upon start or through ribbon icon
+		/*
+		const ribbonIconTest = this.addRibbonIcon('bell', 'Test Icon', (evt: MouseEvent) => {
+			showNotifications(this.app, this.settings);
+		});
+		*/
 
-		this.registerDomEvent(document, 'load', (evt: Event) => {
-			loadNotifications(this.settings);
-		})
+
+		//------------------------------------------------------------------------------------------------ NOTIFICAITONS
 		
-		const ribbonIconNotifications = this.addRibbonIcon('bell', 'Show Notifications', (evt: MouseEvent) => {
-			loadNotifications(this.settings);
-		})
-
-		// display notification on current file upon opening file
-
-		this.registerEvent(this.app.workspace.on('file-open', (file: TFile) => {
-			new Notice('yes');
+		this.registerEvent(this.app.workspace.on('resize', () => {
+			showNotifications(this.app, this.settings);
 		}))
 
+		//------------------------------------------------------------------------------------------------DATE INSERTION / UDDATES
 		// updates last edit date upon any changes to the editor
 
 		this.registerDomEvent(document, 'keypress', (evt: KeyboardEvent) => {
@@ -65,47 +103,55 @@ export default class TextPlugin extends Plugin {
 			updateLastEditDate(editor, this.settings);
 		});	
 
+		//------------------------------------------------------------------------------------------ ADDING PEOPLE
+
+		// adding people in the "people list" through single mouse click
+		
+		this.registerDomEvent(document, 'click', (evt: MouseEvent) => {
+			let editor = this.app.workspace.activeEditor!.editor!;
+			if (editor.getLine(editor.getCursor().line).startsWith(this.settings.peopleStr)) {
+				openSuggestionModal(this.app, this.settings, 0);
+			}
+		});
+
 		// adding/mentioning people anywhere on the editor through tag symbol
 
 		this.registerEvent(this.app.workspace.on('editor-change', (editor: Editor) => {
 			const key = editor.getLine(editor.getCursor().line).charAt(editor.getCursor().ch - 1);
 			if (key.localeCompare(this.settings.tagSymb) == 0) {
-				const files: TFile[] = this.app.vault.getMarkdownFiles();
-				for (let index = 0; index < files.length; index++) {
-					if (files[index].path.localeCompare(this.settings.peopleListFileName + '.md') == 0) {
-						this.app.vault.read(files[index]).then((content) => {
-							editor.replaceRange(
-								this.settings.tagSymb + ' ',
-								{ line: editor.getCursor().line, ch: editor.getCursor().ch - 1 },
-								editor.getCursor()
-							)
-							let nameSuggestionList: string[] = content.split(this.settings.suggestionSplitStr);
-							new SuggestionModal(editor, this.settings, nameSuggestionList, true).open();
-						})
-					}
-				}
+				openSuggestionModal(this.app, this.settings, 1);
 			}
 		}));
 
 		// adding people (opening suggestion modal) anywhere on the editor through ribbon icon
 
 		const ribbonIconAddPeople = this.addRibbonIcon('user', 'Add People', (evt: MouseEvent) => {
-			let editor = this.app.workspace.activeEditor!.editor!;
-			const files: TFile[] = this.app.vault.getMarkdownFiles();
-			for (let index = 0; index < files.length; index++) {
-				if (files[index].path.localeCompare(this.settings.peopleListFileName + '.md') == 0) {
-					this.app.vault.read(files[index]).then((content) => {
-						let nameSuggestionList: string[] = content.split(this.settings.suggestionSplitStr);
-						new SuggestionModal(editor, this.settings, nameSuggestionList, false).open();
-					})
-				}
-			}
+			openSuggestionModal(this.app, this.settings, 2);
 		});
 
+		// cursor relocation
 
+		this.registerInterval(window.setInterval(() => {
+			let editor = this.app.workspace.activeEditor!.editor!
+			if (editor.getLine(editor.getCursor().line + 1).startsWith(this.settings.peopleStr) && editor.getCursor().ch == 0) {
+				editor.setCursor({ line: editor.getCursor().line + 1, ch: editor.getLine(editor.getCursor().line + 1).length })
+			}
+		}, 100));
 
-		// When registering intervals, this function will automatically clear the interval when the plugin is disabled.
-		this.registerInterval(window.setInterval(() => console.log('setInterval'), 5 * 60 * 1000));
+		//------------------------------------------------------------------------------------------------------------ AUTO DATE & NAME INSERTION
+
+		this.registerDomEvent(document, 'keypress', (evt: KeyboardEvent) => {
+			let editor = this.app.workspace.activeEditor!.editor!;
+			let lineTrack = 0;
+			for (let index = 0; index < editor.getCursor().line; index++) {
+				if (editor.getLine(index).startsWith(this.settings.separationLineStr)) {
+					lineTrack ++;
+				}
+			}
+			if (lineTrack == 2 && !editor.getLine(editor.getCursor().line - 1).startsWith(this.settings.separationLineStr)) {
+				generateAutoText(this.app, editor, this.settings);
+			}
+		})
 	}
 
 	onunload() {
