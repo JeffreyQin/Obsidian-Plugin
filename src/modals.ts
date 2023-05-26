@@ -1,10 +1,9 @@
-import { SuggestModal, Modal, Editor, ButtonComponent, Notice } from 'obsidian';
+import { SuggestModal, Modal, Editor, ButtonComponent, Notice, EditorPosition } from 'obsidian';
 import { updateLastEditDate } from '../main';
 import { TextPluginSettings } from './settings';
-
 // mentionModal 
 
-/*
+/*****************************************************************************************************************
 export class MentionModal extends Modal {
 
 	editor: Editor;
@@ -43,7 +42,7 @@ export class MentionModal extends Modal {
 			
 	}
 }
-*/
+
 
 // ask to notify modal
 
@@ -75,6 +74,8 @@ export class NotifyModal extends Modal {
 		}
 }
 
+***************************************************************************************************/
+
 // suggestion modal
 
 export class SuggestionModal extends SuggestModal<string> {
@@ -82,14 +83,14 @@ export class SuggestionModal extends SuggestModal<string> {
 	private editor: Editor;
 	private settings: TextPluginSettings;
 	private suggestionList: string[];
-	private triggerNotify: boolean;
+	private caseID: number;
 
-	constructor(editor: Editor, settings: TextPluginSettings, suggestionList: string[], triggerNotify: boolean) {
+	constructor(editor: Editor, settings: TextPluginSettings, suggestionList: string[], caseID: number) {
 		super(app);
 		this.editor = editor;
 		this.settings = settings;
 		this.suggestionList = suggestionList;
-		this.triggerNotify = triggerNotify;
+		this.caseID = caseID;
 	}
 
 	getSuggestions(query: string): string[] {
@@ -101,17 +102,25 @@ export class SuggestionModal extends SuggestModal<string> {
 		el.createEl("div", { text: item });
 	}
 	onChooseSuggestion(item: string, evt: MouseEvent | KeyboardEvent) {
-		if (this.triggerNotify) {
-			this.editor.replaceRange(
-				item,
-				{ line: this.editor.getCursor().line, ch: this.editor.getCursor().ch - 1 },
-				this.editor.getCursor()
-			)
-			if (this.settings.autoNotify) {
-				new NotifyModal(item, this.settings).open();
-			}
-		} else {
-			this.editor.replaceRange(item, this.editor.getCursor());
+		switch (this.caseID) {
+			case 0:
+				if (!this.editor.getLine(this.editor.getCursor().line).endsWith(",") && !this.editor.getLine(this.editor.getCursor().line).endsWith(" ")) {
+					this.editor.replaceRange("," + item + ",", this.editor.getCursor());
+				} else {
+					this.editor.replaceRange(item + ",", this.editor.getCursor());
+				}
+				this.editor.setCursor({ line: this.editor.getCursor().line - 1, ch: 0 });
+				break;
+			case 1:
+				this.editor.replaceRange(
+					this.settings.tagSymb + item,
+					{ line: this.editor.getCursor().line, ch: this.editor.getCursor().ch - 1 },
+					this.editor.getCursor()
+				)
+				break;
+			case 2:
+				this.editor.replaceRange(item, this.editor.getCursor());
+				break;
 		}
 		updateLastEditDate(this.editor, this.settings);
 	}
