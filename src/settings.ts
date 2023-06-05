@@ -1,9 +1,6 @@
 import TextPlugin from "../main";
 import { App, PluginSettingTab, Setting } from "obsidian";
 
-// setting tab for textPlugin
-// to be imported by main.ts
-
 export interface TextPluginSettings {
 	username: string;
 	tagSymb: string;
@@ -12,10 +9,12 @@ export interface TextPluginSettings {
 	lastEditDateStr: string;
 	dateFormat: string;
     peopleStr: string;
-	peopleListFileName: string;
+	peopleFilePath: string;
 	suggestionSplitStr: string;
     newNotifFileName: string;
-    separationLineStr: string;
+	separationLineStr: string;
+    templateFolderPath: string;
+    dataviewHeaderLine: string;
 }
 
 export const DEFAULT_SETTINGS: Partial<TextPluginSettings> = {
@@ -26,10 +25,12 @@ export const DEFAULT_SETTINGS: Partial<TextPluginSettings> = {
 	lastEditDateStr: "updatedDate:",
 	dateFormat: "YYYY-MM-DD",
     peopleStr: "people:",
-	peopleListFileName: "collaborator",
+	peopleFilePath: "All/Collaborators",
 	suggestionSplitStr: "\n",
     newNotifFileName: "notifications",
-    separationLineStr: '---'
+	separationLineStr: "--",
+    templateFolderPath: "All/Templates/",
+    dataviewHeaderLine: "---"
 };
 
 export class TextPluginSettingTab extends PluginSettingTab {
@@ -90,33 +91,17 @@ export class TextPluginSettingTab extends PluginSettingTab {
                     await this.plugin.saveSettings();
                 })
             )
-        /************************************************************ 
-        new Setting(containerEl)
-            .setName('Notify pop-up')
-            .setDesc('Automatic pop-up option to notify user upon tag')
-            .addToggle(toggle => toggle
-                .setValue(this.plugin.settings.autoNotify)
-                .onChange(async (value) => {
-                    if (this.plugin.settings.autoNotify) {
-                        this.plugin.settings.autoNotify = false;
-                    } else {
-                        this.plugin.settings.autoNotify = true;
-                    }
-                    await this.plugin.saveSettings();
-                })
-            )
-        **************************************************************/
         new Setting(containerEl)
             .setName('Name list file')
             .setDesc('File that stores all candidates for names to be added')
             .addText(text => text
                 .setPlaceholder('default: collaborator')
-                .setValue(this.plugin.settings.peopleListFileName)
+                .setValue(this.plugin.settings.peopleFilePath)
                 .onChange(async (input) => {
                     if (input.localeCompare('') == 0) {
-                        this.plugin.settings.peopleListFileName = DEFAULT_SETTINGS.peopleListFileName!;
+                        this.plugin.settings.peopleFilePath = DEFAULT_SETTINGS.peopleFilePath!;
                     } else {
-                        this.plugin.settings.peopleListFileName = input;
+                        this.plugin.settings.peopleFilePath = input;
                     }
                     await this.plugin.saveSettings();
                 })
@@ -171,11 +156,11 @@ export class TextPluginSettingTab extends PluginSettingTab {
         
         containerEl.createEl('h1', { text: 'Others'});
 
-        new Setting(containerEl)
+		new Setting(containerEl)
             .setName('New day separation line')
             .setDesc('For auto insertion of date and username upon edit.')
             .addText(text => text
-                .setPlaceholder('default: ---')
+                .setPlaceholder('default: --')
                 .setValue(this.plugin.settings.separationLineStr)
                 .onChange(async (input) => {
                     if (input.localeCompare('') == 0) {
@@ -187,6 +172,21 @@ export class TextPluginSettingTab extends PluginSettingTab {
                 })
             )
         
+        new Setting(containerEl)
+            .setName('Template folder path')
+            .setDesc('For auto-prompt on templates upon file creation')
+            .addText(text => text
+                .setPlaceholder('default: templates/')
+                .setValue(this.plugin.settings.templateFolderPath)
+                .onChange(async (input) => {
+                    if (input.localeCompare('') == 0) {
+                        this.plugin.settings.templateFolderPath = DEFAULT_SETTINGS.templateFolderPath!;
+                    } else {
+                        this.plugin.settings.templateFolderPath = input;
+                    }
+                    await this.plugin.saveSettings();
+                })
+            )
     }   
 }
 
