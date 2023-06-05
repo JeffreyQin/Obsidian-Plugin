@@ -1,73 +1,15 @@
-import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting, moment, SuggestModal, WorkspaceLeaf, TFile } from 'obsidian';
+import { App, Editor, Notice, Plugin, moment, TFile } from 'obsidian';
 import { TextPluginSettingTab, TextPluginSettings, DEFAULT_SETTINGS } from './src/settings';
-import { SuggestionModal } from './src/modals';
+import { updateLastEditDate, openPeopleSuggestionModal, showNotifications, openTemplateSuggestionModal } from './src/assets'
+import { generateAutoText } from './src/autotext'
 import { monitorEventLoopDelay } from 'perf_hooks';
-//import { loadNotifications } from './src/notification';
-
-// automaticaly updates latest edit date
-
-export function updateLastEditDate(editor: Editor, settings: TextPluginSettings) {
-	let lineIndex = 0;
-	while (editor.getLine(lineIndex)) {
-		let line = editor.getLine(lineIndex);
-		if (line.startsWith(settings.lastEditDateStr)) {
-			if (editor.getCursor().line != lineIndex) {
-				if (line.length > settings.lastEditDateStr.length + settings.dateFormat.length) {
-					editor.replaceRange(
-						moment().format(settings.dateFormat),
-						{ line: lineIndex, ch: settings.lastEditDateStr.length + 1 },
-						{ line: lineIndex, ch: settings.lastEditDateStr.length + settings.dateFormat.length + 1 }
-					)
-				} else {
-					editor.replaceRange(
-						moment().format(settings.dateFormat),
-						{ line: lineIndex, ch: settings.lastEditDateStr.length + 1 },
-						{ line: lineIndex, ch: line.length }
-					)
-				}
-			}
-		break;
-		}
-	lineIndex ++;	
-	}
-}
-
-// generate name list and open modal
-
-export async function openSuggestionModal(app: App, settings: TextPluginSettings, caseID: number) {
-	const nameFile = app.vault.getMarkdownFiles().find((file) => file.path.localeCompare(settings.peopleListFileName + '.md') == 0);
-	const nameSuggestionList: string[] = (await app.vault.read(nameFile!)).split(settings.suggestionSplitStr);
-	new SuggestionModal(app.workspace.activeEditor!.editor!, settings, nameSuggestionList, caseID).open();
-}
-
-// show notifications and remove tag symbols from corresponding files
-
-export async function showNotifications(app: App, settings: TextPluginSettings) {
-	const files: TFile[] = this.app.vault.getMarkdownFiles();
-	for (let index = 0; index < files.length; index++) {
-		let oldContent: string= await this.app.vault.read(files[index]);
-		if (oldContent.contains(settings.tagSymb + settings.username)) {
-			new Notice('You have a new mention in ' + files[index].path);
-			let newContent: string = oldContent.replace(new RegExp(settings.tagSymb + settings.username, 'gi'), settings.username);
-			app.vault.modify(files[index], newContent);
-		}
-	}
-}
-
-//generate auto text (date + username)
-
-export function generateAutoText(app: App, editor: Editor, settings: TextPluginSettings) {
-	editor.replaceRange(
-		'\n' + settings.separationLineStr + '\n' + moment().format(settings.dateFormat) + " " + settings.username + '\n',
-		{ line: editor.getCursor().line - 1, ch: 0 }
-	)
-}
 
 export default class TextPlugin extends Plugin {
 	settings: TextPluginSettings;
 
 	
 	async onload() {
+
 		await this.loadSettings();
 		this.addSettingTab(new TextPluginSettingTab(this.app, this));
 
@@ -103,30 +45,33 @@ export default class TextPlugin extends Plugin {
 			updateLastEditDate(editor, this.settings);
 		});	
 
-		//------------------------------------------------------------------------------------------ ADDING PEOPLE
+	//------------------------------------------------------------------------------------------ ADDING PEOPLE
 
-		// adding people in the "people list" through single mouse click
-		
+		// adding first person to "people list"
+
 		this.registerDomEvent(document, 'click', (evt: MouseEvent) => {
-			let editor = this.app.workspace.activeEditor!.editor!;
-			if (editor.getLine(editor.getCursor().line).startsWith(this.settings.peopleStr)) {
-				openSuggestionModal(this.app, this.settings, 0);
+			const editor = this.app.workspace.activeEditor!.editor!
+			if (editor.getLine(editor.getCursor().line).startsWith(this.settings.peopleStr) &&
+				editor.getLine(editor.getCursor().line).length <= this.settings.peopleStr.length + 1) {
+					openPeopleSuggestionModal(this.app, this.settings, 0);
 			}
 		});
 
-		// adding/mentioning people anywhere on the editor through tag symbol
+		// adding people through comma (in "people list" only) or tag symbol
 
 		this.registerEvent(this.app.workspace.on('editor-change', (editor: Editor) => {
 			const key = editor.getLine(editor.getCursor().line).charAt(editor.getCursor().ch - 1);
 			if (key.localeCompare(this.settings.tagSymb) == 0) {
-				openSuggestionModal(this.app, this.settings, 1);
+				openPeopleSuggestionModal(this.app, this.settings, 1);
+			} else if (editor.getLine(editor.getCursor().line).startsWith(this.settings.peopleStr) && key.localeCompare(',') == 0) {
+				openPeopleSuggestionModal(this.app, this.settings, 0);
 			}
 		}));
 
-		// adding people (opening suggestion modal) anywhere on the editor through ribbon icon
+		// adding people through ribbon icon
 
 		const ribbonIconAddPeople = this.addRibbonIcon('user', 'Add People', (evt: MouseEvent) => {
-			openSuggestionModal(this.app, this.settings, 2);
+			openPeopleSuggestionModal(this.app, this.settings, 2);
 		});
 
 		// cursor relocation
@@ -137,21 +82,24 @@ export default class TextPlugin extends Plugin {
 				editor.setCursor({ line: editor.getCursor().line + 1, ch: editor.getLine(editor.getCursor().line + 1).length })
 			}
 		}, 100));
-
+		
 		//------------------------------------------------------------------------------------------------------------ AUTO DATE & NAME INSERTION
 
 		this.registerDomEvent(document, 'keypress', (evt: KeyboardEvent) => {
-			let editor = this.app.workspace.activeEditor!.editor!;
-			let lineTrack = 0;
-			for (let index = 0; index < editor.getCursor().line; index++) {
-				if (editor.getLine(index).startsWith(this.settings.separationLineStr)) {
-					lineTrack ++;
-				}
-			}
-			if (lineTrack == 2 && !editor.getLine(editor.getCursor().line - 1).startsWith(this.settings.separationLineStr)) {
-				generateAutoText(this.app, editor, this.settings);
-			}
-		})
+			generateAutoText(this.app, this.app.workspace.activeEditor!.editor!, this.settings);
+		});
+
+		//-------------------------------------------------------------------------------------------------------------- INSERT TEMPLATE
+
+		setTimeout(() => {
+			this.registerEvent(this.app.vault.on('create', (file: TFile) => {
+				setTimeout(() => {
+					if (file.path.endsWith('.md')) {
+						openTemplateSuggestionModal(this.app, this.settings);
+					}
+				}, 100);
+			}));
+		}, 100);
 	}
 
 	onunload() {
