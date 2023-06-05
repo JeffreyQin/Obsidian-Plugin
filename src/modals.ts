@@ -1,5 +1,5 @@
-import { SuggestModal, Modal, Editor, ButtonComponent, Notice, EditorPosition } from 'obsidian';
-import { updateLastEditDate } from '../main';
+import { SuggestModal, Editor, TFile } from 'obsidian';
+import { updateLastEditDate } from './assets';
 import { TextPluginSettings } from './settings';
 // mentionModal 
 
@@ -78,7 +78,32 @@ export class NotifyModal extends Modal {
 
 // suggestion modal
 
-export class SuggestionModal extends SuggestModal<string> {
+export class TemplateSuggestionModal extends SuggestModal<TFile> {
+
+	private editor: Editor;
+	private settings: TextPluginSettings;
+	private suggestionList: TFile[];
+
+	constructor(editor: Editor, settings: TextPluginSettings, suggestionList: TFile[]) {
+		super(app);
+		this.editor = editor;
+		this.settings = settings;
+		this.suggestionList = suggestionList;
+	}
+
+	getSuggestions(query: string): TFile[] {
+		return this.suggestionList.filter((item) => item.path.toLowerCase().includes(query.toLowerCase()));
+	}
+	renderSuggestion(item: TFile, el: HTMLElement) {
+		el.createEl("div", { text: item.path.substring(this.settings.templateFolderPath.length, item.path.length - 3) })
+	}
+	async onChooseSuggestion(item: TFile, evt: MouseEvent | KeyboardEvent) {
+		let content: string = await this.app.vault.read(item);
+		this.editor.replaceRange(content, { line: 0, ch: 0});
+	}
+}
+
+export class PeopleSuggestionModal extends SuggestModal<string> {
 
 	private editor: Editor;
 	private settings: TextPluginSettings;
@@ -94,9 +119,7 @@ export class SuggestionModal extends SuggestModal<string> {
 	}
 
 	getSuggestions(query: string): string[] {
-		return this.suggestionList.filter(
-			(item) => item.toLowerCase().includes(query.toLowerCase())
-		)
+		return this.suggestionList.filter((item) => item.toLowerCase().includes(query.toLowerCase()));
 	}
 	renderSuggestion(item: string, el: HTMLElement) {
 		el.createEl("div", { text: item });
@@ -104,12 +127,9 @@ export class SuggestionModal extends SuggestModal<string> {
 	onChooseSuggestion(item: string, evt: MouseEvent | KeyboardEvent) {
 		switch (this.caseID) {
 			case 0:
-				if (!this.editor.getLine(this.editor.getCursor().line).endsWith(",") && !this.editor.getLine(this.editor.getCursor().line).endsWith(" ")) {
-					this.editor.replaceRange("," + item + ",", this.editor.getCursor());
-				} else {
-					this.editor.replaceRange(item + ",", this.editor.getCursor());
-				}
+				let cursorPos = this.editor.getCursor();
 				this.editor.setCursor({ line: this.editor.getCursor().line - 1, ch: 0 });
+				this.editor.replaceRange(item, cursorPos);
 				break;
 			case 1:
 				this.editor.replaceRange(
