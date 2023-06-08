@@ -91,6 +91,7 @@ export default class TextPlugin extends Plugin {
 
 		//-------------------------------------------------------------------------------------------------------------- INSERT TEMPLATE
 
+		
 		setTimeout(() => {
 			this.registerEvent(this.app.vault.on('create', (file: TFile) => {
 				setTimeout(() => {
@@ -100,6 +101,8 @@ export default class TextPlugin extends Plugin {
 				}, 100);
 			}));
 		}, 100);
+		
+		
 	}
 
 	onunload() {
