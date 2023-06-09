@@ -7,7 +7,7 @@ export async function updateLastEditDate(editor: Editor, settings: AssistPluginS
         !editor.getLine(editor.getCursor().line).startsWith(settings.editDatePrefix)) {
             let lineIndex = 0;
             while (editor.getLine(lineIndex)) {
-                let line = editor.getLine(lineIndex);
+                var line = editor.getLine(lineIndex);
                 if (line.startsWith(settings.editDatePrefix)) {
                     if (line.length >= settings.editDatePrefix.length + settings.dateFormat.length) {
                         editor.replaceRange(

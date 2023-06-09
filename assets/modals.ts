@@ -1,48 +1,33 @@
-import { App, SuggestModal, Editor, TFile, EditorPosition } from 'obsidian';
+import { App, SuggestModal, Editor, TFile, EditorPosition, Modal, ButtonComponent } from 'obsidian';
 import { updateLastEditDate } from '../controllers/autoDate';
 import { AssistPluginSettings } from './settings';
 
-/*****************************************************************************************************************
-export class MentionModal extends Modal {
+
+export class ReminderModal extends Modal {
 
 	editor: Editor;
-	settings: TextPluginSettings;
-	lineNum: number;
+	settings: AssistPluginSettings;
 
-	constructor(lineNum: number, settings: TextPluginSettings) {
+	constructor(editor: Editor, settings: AssistPluginSettings) {
 		super(app);
-		this.editor = this.app.workspace.activeEditor!.editor!;
+		this.editor = editor;
 		this.settings = settings;
-		this.lineNum = lineNum;
 	}
 
 	onOpen() {
-		
-		const mentionText = this.contentEl.createEl('h2', { text: `You have a new mention in line ${this.lineNum}`});
-		const mentionResolveButton = new ButtonComponent(this.contentEl)
+		const reminderText = this.contentEl.createEl('h2', { text: 'You have an unresolved reminder.' })
+		const reminderResolveButton = new ButtonComponent(this.contentEl)
 			.setButtonText('Resolved')
 			.onClick(() => {
-				this.editor
-			}
-		/*
-		onOpen() {
-			const notifyText = this.contentEl.createEl('h1', { text: 'Notify user?'});
-			const notifyButton = new ButtonComponent(this.contentEl)
-				.setButtonText('Yes')
-				.onClick(() => {
-					new Notice(this.name + ' will be notified');
-					this.editor.replaceRange(
-						this.settings.noticeSymb,
-						{ line: this.editor.getCursor().line, ch: this.editor.getCursor().ch - this.name.length }
-					)
-					this.close();
-				})
-			}
-			
+				const oldContent = this.editor.getValue();
+				const newContent = oldContent.replace(new RegExp(this.settings.reminderSymb, 'gi'), '');
+				this.app.vault.modify(this.app.workspace.getActiveFile()!, newContent);
+				this.close();
+			});
+		}
+	onClose() {
 	}
 }
-***************************************************/
-
 
 export class TemplateModal extends SuggestModal<TFile> {
 

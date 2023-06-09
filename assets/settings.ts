@@ -3,7 +3,8 @@ import { App, PluginSettingTab, Setting } from "obsidian";
 
 export interface AssistPluginSettings {
     autoRemind: boolean,
-	remindSymb: string;
+    showNotif: boolean,
+	reminderSymb: string;
     autoDate: boolean,
     editDatePrefix: string,
 	dateFormat: string,
@@ -18,8 +19,9 @@ export interface AssistPluginSettings {
 }
 
 export const DEFAULT_SETTINGS: Partial<AssistPluginSettings> = {
-	autoRemind: false,
-    remindSymb: '@',
+    autoRemind: false,
+    showNotif: false,
+    reminderSymb: '@',
     autoDate: false,
     editDatePrefix: 'Last edited: ',
     dateFormat: 'YYYY-MM-DD',
@@ -48,7 +50,7 @@ export class AssistPluginSettingTab extends PluginSettingTab {
         containerEl.createEl('h1', { text: 'Set Reminders'});
 
         new Setting(containerEl)
-            .setName('Set reminders')
+            .setName('Show reminders')
             .addToggle(toggle => toggle
                 .setValue(this.plugin.settings.autoRemind)
                 .onChange(async (value) => {
@@ -62,15 +64,29 @@ export class AssistPluginSettingTab extends PluginSettingTab {
             )
 
         new Setting(containerEl)
+            .setName('Show notifications')
+            .addToggle(toggle => toggle
+                .setValue(this.plugin.settings.showNotif)
+                .onChange(async (value) => {
+                    if (this.plugin.settings.showNotif) {
+                        this.plugin.settings.showNotif = false;
+                    } else {
+                        this.plugin.settings.showNotif = true;
+                    }
+                    await this.plugin.saveSettings();
+                })
+            )
+
+        new Setting(containerEl)
             .setName('Reminder symbol')
             .addText(text => text
                 .setPlaceholder('default: @')
-                .setValue(this.plugin.settings.remindSymb)
+                .setValue(this.plugin.settings.reminderSymb)
                 .onChange(async (input) => {
                     if (input == '') {
-                        this.plugin.settings.remindSymb = DEFAULT_SETTINGS.remindSymb!;
+                        this.plugin.settings.reminderSymb = DEFAULT_SETTINGS.reminderSymb!;
                     } else {
-                        this.plugin.settings.remindSymb = input;
+                        this.plugin.settings.reminderSymb = input;
                     }
                     await this.plugin.saveSettings();
                 })
