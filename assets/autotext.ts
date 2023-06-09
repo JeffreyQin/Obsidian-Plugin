@@ -1,8 +1,8 @@
 import { App, Editor, moment, Notice } from 'obsidian'
-import { TextPluginSettings } from './settings'
+import { AssistPluginSettings } from './settings'
 
 // check if auto text is allowed at current cursor location in current file
-
+/*
 export function disableAutoText(app: App, editor: Editor, settings: TextPluginSettings): boolean {
     if (!editor.getLine(0).startsWith(settings.separationLineStr)) {
         return true;
@@ -42,3 +42,4 @@ export function generateAutoText(app: App, editor: Editor, settings: TextPluginS
         )
     }
 }
+*/

@@ -1,31 +1,50 @@
 import { App, Editor, Notice, Plugin, moment, TFile } from 'obsidian';
-import { TextPluginSettingTab, TextPluginSettings, DEFAULT_SETTINGS } from './src/settings';
-import { updateLastEditDate, openPeopleSuggestionModal, showNotifications, openTemplateSuggestionModal } from './src/assets'
-import { generateAutoText } from './src/autotext'
-import { monitorEventLoopDelay } from 'perf_hooks';
+import { AssistPluginSettingTab, AssistPluginSettings, DEFAULT_SETTINGS } from './assets/settings';
+import { openVocabModal } from './controllers/insertVocab';
+import { openTemplateModal } from './controllers/insertTemplate'
+import { updateLastEditDate } from './controllers/autoDate'
 
-export default class TextPlugin extends Plugin {
-	settings: TextPluginSettings;
+export default class AssistPlugin extends Plugin {
+	settings: AssistPluginSettings;
 
-	
 	async onload() {
 
 		await this.loadSettings();
-		this.addSettingTab(new TextPluginSettingTab(this.app, this));
+		this.addSettingTab(new AssistPluginSettingTab(this.app, this));
 
-		/*
-		const ribbonIconTest = this.addRibbonIcon('bell', 'Test Icon', (evt: MouseEvent) => {
-			showNotifications(this.app, this.settings);
-		});
-		*/
+		// update date
 
+		this.registerDomEvent(document, 'keypress', (evt: KeyboardEvent) => {
+			updateLastEditDate(this.app.workspace.activeEditor!.editor!, this.settings);
+		})
 
-		//------------------------------------------------------------------------------------------------ NOTIFICAITONS
-		
-		this.registerEvent(this.app.workspace.on('resize', () => {
-			showNotifications(this.app, this.settings);
+		this.registerEvent(this.app.workspace.on('editor-paste', () => {
+			updateLastEditDate(this.app.workspace.activeEditor!.editor!, this.settings);
 		}))
 
+		// insert vocab
+
+		this.registerEvent(this.app.workspace.on('editor-change', (editor: Editor) => {
+			const key = editor.getLine(editor.getCursor().line).charAt(editor.getCursor().ch - 1);
+			if (this.settings.autoVocab && key == this.settings.insertVocab) {
+				openVocabModal(this.app, this.settings);
+			}
+		}));
+
+		// insert template
+
+		setTimeout(() => {
+			this.registerEvent(this.app.vault.on('create', (file: TFile) => {
+				if (this.settings.autoTemplate && file.path.endsWith('.md')) {
+					setTimeout(() => {
+						openTemplateModal(this.app, this.settings);
+					}, 100);
+				}
+			}))
+		}, 100);
+
+
+		/*
 		//------------------------------------------------------------------------------------------------DATE INSERTION / UDDATES
 		// updates last edit date upon any changes to the editor
 
@@ -102,6 +121,7 @@ export default class TextPlugin extends Plugin {
 			}));
 		}, 100);
 		
+		*/
 		
 	}
 
