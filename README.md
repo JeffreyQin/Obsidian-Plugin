@@ -32,5 +32,3 @@ To run the unauthorized plugin, do the following on Obsidian:
 3. In settings, refresh the folder to load community plugins.
 4. Locate and turn on "Assist Plugin".
 5. Adjust the plugin settings (all functionalities are disabled by default).
-6. Enjoy !!!
-
