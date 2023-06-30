@@ -2,6 +2,8 @@
 
 This is an obsidian plugin that provides numerous text functionalities for quick assistance. 
 
+- Languages: HTML, TypeScript (Node.js)
+
 ## Functionalities
 
 - Automatic update of current date at designated locations upon changes to the file.
