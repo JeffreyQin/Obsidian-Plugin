@@ -16,7 +16,7 @@ This is an obsidian plugin that provides numerous text functionalities for quick
 
 In addition to its functionalities, the plugin offers a comprehensive settings that include:
 - Enabling/disabling certain features of the plugin.
-- Setting customized file paths and shortcuts for insertions of vocabularies and templates.
+- Setting customized file paths and keyboard shortcuts for insertions of vocabularies and templates.
 
 ## How to use
 
